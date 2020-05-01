@@ -1,12 +1,11 @@
 //
 // /Users/Jim/projects/functions/src/main.rs
 //
-
 use std::env;
+
 // use regex::Regex;
 
 const MAX_LETTERS: usize = 7;
-const LETTER_BUFFER_SIZE: usize = MAX_LETTERS + 1;
 const MIN_LETTERS: usize = 3;
 
 fn factorial(n: usize) -> usize {
@@ -18,8 +17,8 @@ fn factorial(n: usize) -> usize {
 
 #[derive(Debug)]
 struct Config {
-    pattern: [u8; LETTER_BUFFER_SIZE],
-    pool: [u8; LETTER_BUFFER_SIZE],
+    pattern: Vec<u8>,
+    pool: Vec<u8>,
 }
 
 impl Config {
@@ -41,37 +40,42 @@ impl Config {
             return Err("The supplied pattern cannot be longer than the supplied possible letters");
         }
 
-        let pattern_bytes_temp = pattern_string.as_bytes();
-        let mut pattern: [u8; LETTER_BUFFER_SIZE] = [0u8; LETTER_BUFFER_SIZE];
-        for i in 0..pattern_bytes_temp.len() {
-            if pattern_bytes_temp[i] == 0u8 {
-                break;
-            }
-            pattern[i] = pattern_bytes_temp[i];
-        }
-
-        let mut pool_bytes_temp = pool_string.as_bytes().clone();
-        pool_bytes_temp.sort();
-        let mut pool: [u8; LETTER_BUFFER_SIZE] = [0u8; LETTER_BUFFER_SIZE];
-        for i in 0..pool_bytes_temp.len() {
-            if pool_bytes_temp[i] == 0u8 {
-                break;
-            }
-            pool[i] = pool_bytes_temp[i];
-        }
-
+        let pattern = pattern_string.as_bytes().to_vec();
+        let mut pool = pool_string.as_bytes().to_vec();
+        pool.sort();
+        let pool = pool.to_vec();
         Ok(Config{pattern, pool})
     }
 }
 
-fn fill_letter(level: usize, template: &[u8; LETTER_BUFFER_SIZE], pool: &[u8; LETTER_BUFFER_SIZE], letters: &mut [u8; LETTER_BUFFER_SIZE], bookmarks: &mut[usize; MAX_LETTERS], indices: &mut Vec<std::str::CharIndices> ) {
-    println!("level: {}, letters: {:?}, bookmarks: {:?}", level, letters, bookmarks);
-    for c in &letters {
-        letters[level] = *c;
-        if level + 1 < template.len() {
-            fill_letter(level + 1, template, pool, letters, bookmarks, indices);
-        } else {
-            println!("Level {}: letters: {}", level, String::from_utf8(letters).expect("All characters are ASCII"));
+fn fill_letter(level: usize, template: &Vec<u8>, pool: &Vec<u8>, letters: &mut Vec<u8>, bookmarks: &mut Vec<usize>) {
+    // println!("level: {}, letters: {:?}, bookmarks: {:?}, template.len(): {}", level, letters, bookmarks, template.len());
+    if level >= template.len() {
+        println!("fill_letter: reached end of word.");
+        letters.push(0u8);
+        let word: String = String::from_utf8(letters.clone()).expect("All letters are ASCII");
+        println!("{}; level: {}; bookmarks = {:?}", word, level, bookmarks);
+        letters.pop();
+    } else {
+        // println!("fill_letter: need to add {} more letters", template.len() - letters.len());
+        for i in 0..pool.len() {
+            // println!("fill_letter: trying letter '{}' at index {}", pool[i], i);
+            if !bookmarks.contains(&i) {
+                // println!("fill_letter: bookmarks {:?} do not contain {}", bookmarks, i);
+                letters.push(pool[i]);
+                if level + 1 < template.len() {
+                    bookmarks.push(i);
+                    fill_letter(level + 1, template, pool, letters, bookmarks);
+                    bookmarks.pop();
+                } else {
+                    // println!("fill_letter: reached end of word.");
+                    letters.push(0u8);
+                    let word: String = String::from_utf8(letters.clone()).expect("All letters are ASCII");
+                    println!("{}; level: {}; bookmarks = {:?}", word, level, bookmarks);
+                    letters.pop();
+                }
+                letters.pop();
+            }  // else this member of |pool| has already been used.
         }
     }
 }
@@ -80,31 +84,14 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let config = Config::new(&args).expect("Insufficient arguments");
     println!("Parsed arguments: {:?}", config);
+    unsafe {
+        println!("Pattern: {}", String::from_utf8_unchecked(config.pattern.to_vec()));
+        println!("Pool   : {}", String::from_utf8_unchecked(config.pool.to_vec()));
+    }
+    println!("The maximum number of possible words in a    game is: {}", factorial(MAX_LETTERS));
+    println!("The maximum number of possible words in this game is: {}", factorial(config.pattern.len()));
 
-    println!("The maximum number of possible words in a game is: {}", factorial(MAX_LETTERS));
-
-    let pattern_string = String::from_utf8(config.pattern.to_vec()).expect("Pattern is always ASCII.");
-    let pattern_string_length = pattern_string.len();
-    println!("pattern: {} ({})", pattern_string, pattern_string_length);
-    println!("The number of possible words matching pattern {} is: {}", pattern_string, factorial(pattern_string_length));
-
-    let mut pool_string_vector = config.pattern.to_vec();
-    let pool_string = String::from_utf8(config.pattern.to_vec()).expect("Pool is always ASCII.");
-    let pool_string_length = pool_string.len();
-    pool_string_vector.sort();
-    pool_string_vector.dedup();
-    let pool_string_dedup = String::from_utf8(pool_string_vector).expect("Pool is always ASCIId.");
-    let pool_string_dedup_length = pool_string_dedup.len();
-    println!("pool: {} ({})", pool_string, pool_string_length);
-    println!("pool_dedup: {} ({})", pool_string_dedup, pool_string_dedup_length);
-
-    let mut indices: Vec<std::str::CharIndices> = vec![pool_string.char_indices(); MAX_LETTERS];
-    let mut bookmarks: [usize; MAX_LETTERS] = [0usize; MAX_LETTERS];
-    let mut letters: [u8; LETTER_BUFFER_SIZE] = [0u8; LETTER_BUFFER_SIZE];
-    let pattern: [u8; LETTER_BUFFER_SIZE] = [0u8; LETTER_BUFFER_SIZE];
-    let pool: [u8; LETTER_BUFFER_SIZE] = [0u8; LETTER_BUFFER_SIZE];
-
-    println!("There are {} iterators and {} bookmarks", indices.len(), bookmarks.len());
-
-    fill_letter(0usize, &pattern, &pool, &mut letters, &mut bookmarks, &mut indices);
+    let mut bookmarks: Vec<usize> = Vec::new();
+    let mut letters: Vec<u8> = Vec::new();
+    fill_letter(0usize, &config.pattern, &config.pool, &mut letters, &mut bookmarks);
 }
