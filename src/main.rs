@@ -1,12 +1,24 @@
 //
 // /Users/Jim/projects/functions/src/main.rs
 //
+use regex::Regex;
+use std::collections::HashSet;
 use std::env;
-
-// use regex::Regex;
 
 const MAX_LETTERS: usize = 7;
 const MIN_LETTERS: usize = 3;
+
+const DEFAULT_EXCLUSIONS: &str = "\
+^b[bcdfgkmnpqstvxz]|^c[bcdfgkmnpqstvx]|^d[bcdfgklmnpqstvxz]|^f[bcdfgkmnpqstvxz]|\
+^g[cdfgkmpqstvxz]|^h[bcdfghkmnpqtvxz]|^j[bcdfgjklmnpqrstvxz]|^k[bcdfgkmpqstxz]|\
+^l[cdfgkmnpqrstvxz]|^m[bcdfgkmpqrstvxz]|^mn[^e]|^n[bcdfgklmnpqrstvxz]|^p[bcdgkmpqvwxz]\
+^q[bcdfghjklmnpqrstvxz]|^r[bcdfgklmnpqstvwxz]|^s[dgrx]|^t[bcdfgkmnpqtvx]\
+^v[bcdfghkmnpqstvxz]|^w[bcdfgjklmnpqstvwxz]|^wr[^aeiouy]|^x[bcdfgklmnpqrstvxz]|^z[bcdfgknpqtvxz]\
+[cdfgjknpqstvxz]b$|[bdfghjkpqtvxyz]c$|[bcfgjkpqtvxyz]d$|[bcdgjkqstvxz]f$|[cdfjkpqstvxz]g$|\
+[flmnqvwxz]h$|[cdfghklmnpqstvxz]j$|[bdfgjmpqtvxz]k$|[bcdfgjkmnpqstvxz]l$|[bcdfgnpqtvxz]m$|\
+[bcdfjkpqstvxz]n$|[bcdfghjknqtvxz]p$|[^a]q$|[bcdfgjklmnpqstvxz]r$|[bcdfghjkmnpqstvwxz]v$|\
+[bcdfghjklmnpqrstvwxz]w$|[^aeiouy]x$|[bcdfghkpqvx]z$\
+[aeiou]{4,}|a{3}|b{3,}|d{3,}|e{3}|i{3}|o{3}|p{3,}|s{3,}|t{3,}|u{3}";
 
 fn factorial(n: usize) -> usize {
     match n {
@@ -19,6 +31,7 @@ fn factorial(n: usize) -> usize {
 struct Config {
     pattern: Vec<u8>,
     pool: Vec<u8>,
+    exclusions: Option<regex::Regex>,
 }
 
 impl Config {
@@ -42,37 +55,84 @@ impl Config {
 
         let pattern = pattern_string.as_bytes().to_vec();
         let mut pool = pool_string.as_bytes().to_vec();
+        for c in &pattern {
+            if *c != b'.' {
+                assert!(pool.contains(&c));
+                let index = pool.iter().position(|l : &u8| l == c).unwrap();
+                pool.remove(index);
+            }
+        }
         pool.sort();
         let pool = pool.to_vec();
-        Ok(Config{pattern, pool})
+
+        let mut exclusions : Option<Regex> = None;
+        if args.len() >= 4 {
+            if args[3].len() > 0 {
+                let rx_result = Regex::new(&args[3]);
+                match rx_result {
+                    Ok(rx) => {
+                        println!("Using supplied exclusions: '{}'", args[3]);
+                        exclusions = Some(rx);
+                    },
+                    Err(err) => {
+                        eprintln!("Could not compile RegEx from '{}': {}", args[3], err);
+                    },
+                }
+            } else {
+                println!("Using a blank argument to skip default exclusions; no exclusions used.");
+            }
+        } else {
+            let rx_result = Regex::new(DEFAULT_EXCLUSIONS);
+            match rx_result {
+                Ok(rx) => {
+                    println!("Using supplied exclusions: '{}'", DEFAULT_EXCLUSIONS);
+                    exclusions = Some(rx);
+                },
+                Err(err) => {
+                    eprintln!("Could not compile RegEx from '{}': {}", DEFAULT_EXCLUSIONS, err);
+                },
+            }
+    }
+        Ok(Config{pattern, pool, exclusions})
     }
 }
 
-fn fill_letter(level: usize, template: &Vec<u8>, pool: &Vec<u8>, letters: &mut Vec<u8>, bookmarks: &mut Vec<usize>) {
-    // println!("level: {}, letters: {:?}, bookmarks: {:?}, template.len(): {}", level, letters, bookmarks, template.len());
-    if level >= template.len() {
-        println!("fill_letter: reached end of word.");
-        letters.push(0u8);
-        let word: String = String::from_utf8(letters.clone()).expect("All letters are ASCII");
-        println!("{}; level: {}; bookmarks = {:?}", word, level, bookmarks);
+fn add_if_not_match(word: String, words: &mut HashSet<String>, exclusions: &Option<Regex>) {
+    if !words.contains(&word) {
+        match exclusions {
+            Some(exclusions) => {
+                if !exclusions.is_match(&word) {
+                    words.insert(word);
+                }
+            },
+            None => {
+                words.insert(word);
+            }
+        }
+    }
+}
+
+fn fill_letter(level: usize, template: &Vec<u8>, pool: &Vec<u8>, letters: &mut Vec<u8>, bookmarks: &mut Vec<usize>, exclusions: &Option<Regex>, words: &mut HashSet<String>) {
+    if template[level] != b'.' {
+        letters.push(template[level]);
+        if level + 1 < template.len() {
+            fill_letter(level + 1, template, pool, letters, bookmarks, exclusions, words);
+        } else {
+            let word: String = String::from_utf8(letters.clone()).expect("All letters are ASCII");
+            add_if_not_match(word, words, exclusions);
+        }
         letters.pop();
     } else {
-        // println!("fill_letter: need to add {} more letters", template.len() - letters.len());
         for i in 0..pool.len() {
-            // println!("fill_letter: trying letter '{}' at index {}", pool[i], i);
             if !bookmarks.contains(&i) {
-                // println!("fill_letter: bookmarks {:?} do not contain {}", bookmarks, i);
                 letters.push(pool[i]);
                 if level + 1 < template.len() {
                     bookmarks.push(i);
-                    fill_letter(level + 1, template, pool, letters, bookmarks);
+                    fill_letter(level + 1, template, pool, letters, bookmarks, exclusions, words);
                     bookmarks.pop();
                 } else {
-                    // println!("fill_letter: reached end of word.");
-                    letters.push(0u8);
                     let word: String = String::from_utf8(letters.clone()).expect("All letters are ASCII");
-                    println!("{}; level: {}; bookmarks = {:?}", word, level, bookmarks);
-                    letters.pop();
+                    add_if_not_match(word, words, exclusions);
                 }
                 letters.pop();
             }  // else this member of |pool| has already been used.
@@ -83,15 +143,41 @@ fn fill_letter(level: usize, template: &Vec<u8>, pool: &Vec<u8>, letters: &mut V
 fn main() {
     let args: Vec<String> = env::args().collect();
     let config = Config::new(&args).expect("Insufficient arguments");
-    println!("Parsed arguments: {:?}", config);
     unsafe {
-        println!("Pattern: {}", String::from_utf8_unchecked(config.pattern.to_vec()));
-        println!("Pool   : {}", String::from_utf8_unchecked(config.pool.to_vec()));
+        eprintln!("Pattern   : {}", String::from_utf8_unchecked(config.pattern.to_vec()));
+        eprintln!("Pool      : {}", String::from_utf8_unchecked(config.pool.to_vec()));
+        if args.len() > 3 {
+            eprintln!("Exclusions: {}", args[3]);
+        }
     }
-    println!("The maximum number of possible words in a    game is: {}", factorial(MAX_LETTERS));
-    println!("The maximum number of possible words in this game is: {}", factorial(config.pattern.len()));
 
-    let mut bookmarks: Vec<usize> = Vec::new();
-    let mut letters: Vec<u8> = Vec::new();
-    fill_letter(0usize, &config.pattern, &config.pool, &mut letters, &mut bookmarks);
+    let mut non_dot_count = 0;
+    for c in &config.pattern {
+        if *c != b'.' {
+            non_dot_count = non_dot_count + 1;
+        }
+    }
+
+    // if args.len() > 3 {
+    //     let r = Regex::new(&args[3]).expect("Must be legal expression");
+    //     if r.is_match("ab") {
+    //         eprintln!("Test Regex matches.");
+    //     } else {
+    //         eprintln!("Test Regex does not match.");
+    //     }
+    // }
+
+    eprintln!("The number of pre-specified letters is: {}; {}! = {}", non_dot_count, non_dot_count, factorial(non_dot_count));
+    // println!("The maximum number of possible words in a    game is: {}", factorial(MAX_LETTERS));
+    // println!("The maximum number of possible words in this game is: {}", factorial(config.pattern.len()));
+    // println!("The maximum number of legal    words in this game is: {}", factorial(config.pattern.len()) / factorial(non_dot_count));
+    let mut words : HashSet<String> = HashSet::new();
+    let mut bookmarks: Vec<usize> = Vec::with_capacity(MAX_LETTERS);
+    let mut letters: Vec<u8> = Vec::with_capacity(MAX_LETTERS);
+    fill_letter(0usize, &config.pattern, &config.pool, &mut letters, &mut bookmarks, &config.exclusions, &mut words);
+    let mut word_list: Vec<String> = words.into_iter().collect();
+    word_list.sort();
+    for word in word_list {
+        println!("{}", word);
+    }
 }
