@@ -11,12 +11,12 @@ const MIN_LETTERS: usize = 3;
 const DEFAULT_EXCLUSIONS: &str = "\
 ^b[bcdfgkmnpqstvxz]|^c[bcdfgkmnpqstvx]|^d[bcdfgklmnpqstvxz]|^f[bcdfgkmnpqstvxz]|\
 ^g[cdfgkmpqstvxz]|^h[bcdfghkmnpqtvxz]|^j[bcdfgjklmnpqrstvxz]|^k[bcdfgkmpqstxz]|\
-^l[cdfgkmnpqrstvxz]|^m[bcdfgkmpqrstvxz]|^mn[^e]|^n[bcdfgklmnpqrstvxz]|^p[bcdgkmpqvwxz]\
-^q[bcdfghjklmnpqrstvxz]|^r[bcdfgklmnpqstvwxz]|^s[dgrx]|^t[bcdfgkmnpqtvx]\
-^v[bcdfghkmnpqstvxz]|^w[bcdfgjklmnpqstvwxz]|^wr[^aeiouy]|^x[bcdfgklmnpqrstvxz]|^z[bcdfgknpqtvxz]\
+^l[cdfgkmnpqrstvxz]|^m[bcdfgkmpqrstvxz]|^mn[^e]|^n[bcdfghjklmnpqrstvxz]|^p[bcdgkmpqvwxz]\
+^q[bcdfghjklmnpqrstvxz]|^r[bcdfgklmnpqstvwxz]|^s[dgrx]|^t[bcdfgkmnpqtvx]|\
+^v[bcdfghkmnpqstvxz]|^w[bcdfgjklmnpqstvwxz]|^wr[^aeiouy]|^x[bcdfgklmnpqrstvxz]|^y[bcdfghjklmnpqstvwxz]^z[bcdfgknpqtvxz]\
 [cdfgjknpqstvxz]b$|[bdfghjkpqtvxyz]c$|[bcfgjkpqtvxyz]d$|[bcdgjkqstvxz]f$|[cdfjkpqstvxz]g$|\
 [flmnqvwxz]h$|[cdfghklmnpqstvxz]j$|[bdfgjmpqtvxz]k$|[bcdfgjkmnpqstvxz]l$|[bcdfgnpqtvxz]m$|\
-[bcdfjkpqstvxz]n$|[bcdfghjknqtvxz]p$|[^a]q$|[bcdfgjklmnpqstvxz]r$|[bcdfghjkmnpqstvwxz]v$|\
+[bcdfjkpqstvxz]n$|[bcdfghjknqtvxz]p$|[^a]q$|[bcdfgjklmnpqstvxz]r$|[bgjqvxz]t$|[bcdfghjkmnpqstvwxz]v$|\
 [bcdfghjklmnpqrstvwxz]w$|[^aeiouy]x$|[bcdfghkpqvx]z$\
 [aeiou]{4,}|a{3}|b{3,}|d{3,}|e{3}|i{3}|o{3}|p{3,}|s{3,}|t{3,}|u{3}";
 
