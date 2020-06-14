@@ -9,15 +9,15 @@ const MAX_LETTERS: usize = 7;
 const MIN_LETTERS: usize = 3;
 
 const DEFAULT_EXCLUSIONS: &str = "\
-^b[bcdfgkmnpqstvxz]|^c[bcdfgkmnpqstvx]|^d[bcdfgklmnpqstvxz]|^f[bcdfgkmnpqstvxz]|\
-^g[cdfgkmpqstvxz]|^h[bcdfghkmnpqtvxz]|^j[bcdfgjklmnpqrstvxz]|^k[bcdfgkmpqstxz]|\
-^l[cdfgkmnpqrstvxz]|^m[bcdfgkmpqrstvxz]|^mn[^e]|^n[bcdfghjklmnpqrstvxz]|^p[bcdgkmpqvwxz]\
-^q[bcdfghjklmnpqrstvxz]|^r[bcdfgklmnpqstvwxz]|^s[dgrx]|^t[bcdfgkmnpqtvx]|\
-^v[bcdfghkmnpqstvxz]|^w[bcdfgjklmnpqstvwxz]|^wr[^aeiouy]|^x[bcdfgklmnpqrstvxz]|^y[bcdfghjklmnpqstvwxz]^z[bcdfgknpqtvxz]\
-[cdfgjknpqstvxz]b$|[bdfghjkpqtvxyz]c$|[bcfgjkpqtvxyz]d$|[bcdgjkqstvxz]f$|[cdfjkpqstvxz]g$|\
+^b[bcdfgkmnpqstvxz]|^c[bcdfgkmnpqstvx]|^d[bcdfgklmnpqstvxz]|^f[bcdfghkmnpqstvxz]|\
+^g[cdfgkmpqstvxz]|^h[bcdfghklmnpqrstvxz]|^j[bcdfgjklmnpqrstvxz]|^k[bcdfgkmpqstxz]|\
+^l[cdfgkmnpqrstvxz]|^m[bcdfgkmpqrstvxz]|^mn[^e]|^n[bcdfghjklmnpqrstvxz]|^p[bcdgkmpqvwxz]|\
+^q[bcdfghjklmnpqrstvxz]|^r[bcdfgklmnpqstvwxz]|^s[dgrsx]|^t[bcdfgklmnpqtvx]|\
+^v[bcdfghkmnpqstvxz]|^w[bcdfgjklmnpqstvwxz]|^wr[^aeiouy]|^x[bcdfgklmnpqrstvxz]|^y[bcdfghjklmnpqstvwxz]^z[bcdfgknpqtvxz]|\
+[cdfgjknpqstvxz]b$|[bdfghjkmpqtvxyz]c$|[bcfgjkpqtvxyz]d$|[bcdgjkqstvxz]f$|[cdfjkpqstvxz]g$|\
 [flmnqvwxz]h$|[cdfghklmnpqstvxz]j$|[bdfgjmpqtvxz]k$|[bcdfgjkmnpqstvxz]l$|[bcdfgnpqtvxz]m$|\
-[bcdfjkpqstvxz]n$|[bcdfghjknqtvxz]p$|[^a]q$|[bcdfgjklmnpqstvxz]r$|[bgjqvxz]t$|[bcdfghjkmnpqstvwxz]v$|\
-[bcdfghjklmnpqrstvwxz]w$|[^aeiouy]x$|[bcdfghkpqvx]z$\
+[bcdfjkpqstvxz]n$|[bcdfghjknqtvxz]p$|[^a]q$|[bcdfgjklmnpqstvxz]r$|[bdgjkmqvxz]t$|[bcdfghjkmnpqstvwxz]v$|\
+[bcdfghjklmnpqrstvwxz]w$|[^aeiouy]x$|[bcdfghkpqvx]z$|\
 [aeiou]{4,}|a{3}|b{3,}|d{3,}|e{3}|i{3}|o{3}|p{3,}|s{3,}|t{3,}|u{3}";
 
 fn factorial(n: usize) -> usize {
@@ -36,6 +36,7 @@ struct Config {
 
 impl Config {
     pub fn new(args: &[String]) -> Result<Config, &'static str> {
+        eprintln!("There are {} arguments.", args.len());
         if args.len() < 3 {
             return Err("Need arguments *pattern* and *letters*");
         }
@@ -64,14 +65,14 @@ impl Config {
         }
         pool.sort();
         let pool = pool.to_vec();
-
+        eprintln!("There are {} arguments.", args.len());
         let mut exclusions : Option<Regex> = None;
         if args.len() >= 4 {
             if args[3].len() > 0 {
                 let rx_result = Regex::new(&args[3]);
                 match rx_result {
                     Ok(rx) => {
-                        println!("Using supplied exclusions: '{}'", args[3]);
+                        eprintln!("Using supplied exclusions: '{}'", args[3]);
                         exclusions = Some(rx);
                     },
                     Err(err) => {
@@ -79,13 +80,13 @@ impl Config {
                     },
                 }
             } else {
-                println!("Using a blank argument to skip default exclusions; no exclusions used.");
+                eprintln!("Using a blank argument to skip default exclusions; no exclusions used.");
             }
         } else {
             let rx_result = Regex::new(DEFAULT_EXCLUSIONS);
             match rx_result {
                 Ok(rx) => {
-                    println!("Using supplied exclusions: '{}'", DEFAULT_EXCLUSIONS);
+                    eprintln!("Using supplied exclusions: '{}'", DEFAULT_EXCLUSIONS);
                     exclusions = Some(rx);
                 },
                 Err(err) => {
