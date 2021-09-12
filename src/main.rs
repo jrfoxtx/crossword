@@ -15,21 +15,14 @@ const EXCLUSION_INDEX: usize = 3;
 const DEFAULT_EXCLUSIONS: &str = "\
 ^b[bcdfgkmnpqstvxz]|^c[bcdfgjkmnpqstvx]|^d[bcdfgklmnpqstvxz]|^f[bcdfghkmnpqstvxz]|\
 ^g[cdfgkmpqstvxz]|^h[bcdfghklmnpqrstvxz]|^j[bcdfgjklmnpqrstvxz]|^k[bcdfgkmpqstxz]|\
-^l[bcdfghkmnpqrstvxz]|^m[bcdfgkmpqrstvxz]|^mn[^e]|^n[bcdfghjklmnpqrstvxz]|^p[bcdgkmpqvwxz]|\
-^q[bcdfghjklmnpqrstvxz]|^r[bcdfgklmnpqstvwxz]|^s[dgrsx]|^t[bcdfgklmnpqtvx]|\
-^v[bcdfghkmnpqstvxz]|^w[bcdfgjklmnpqstvwxz]|^wr[^aeiouy]|^x[bcdfgklmnpqrstvxz]|^y[bcdfghjklmnpqstvwxz]^z[bcdfgknpqtvxz]|\
-[cdfgjknpqstvxz]b$|[bdfghjkmpqtvxyz]c$|[bcfgjkpqtvxyz]d$|[bcdgjkqstvxz]f$|[cdfjkpqstvxz]g$|\
+^l[bcdfghkmnpqrstvxz]|^m[bcdfgklmpqrstvxz]|^mn[^e]|^n[bcdfghjklmnpqrstvxz]|^p[bcdgkmpqvwxz]|\
+^q[bcdfghjklmnpqrstvxz]|^r[bcdfgklmnpqstvwxz]|^s[dgrsx]|^t[bcdfgklmnpqtvx]|^u[uy]|\
+^v[bcdfghklmnpqstvxz]|^w[bcdfgjklmnpqstvwxz]|^wr[^aeiouy]|^x[bcdfgklmnpqrstvxz]|^y[bcdfghjklmnpqstvwxz]^z[bcdfgknpqtvxz]|\
+[cdfgjknpqstvxz]b$|[bdfghjkmpqtvxyz]c$|[bcfgjkpqtvxyz]d$|[bcdgjkmnqstvxz]f$|[cdfjkpqstvxz]g$|\
 [flmnqvwxz]h$|[cdfghklmnpqstvxz]j$|[bdfgjmpqtvxz]k$|[bcdfgjkmnpqstvxz]l$|[bcdfgnpqtvxz]m$|\
-[bcdfjkpqstvxz]n$|[bcdfghjknqtvxz]p$|[^a]q$|[bcdfgjklmnpqstvxz]r$|[bdgjkmqvxz]t$|[bcdfghjkmnpqstvwxz]v$|\
+[bcdfjkpqstvxz]n$|[bcdfghjknqtvxz]p$|[^a]q$|[bcdfgjklmnpqstvxz]r$|[bdgjkmqvxz]t$|[ux]u$|[bcdfghjkmnpqstvwxz]v$|\
 [bcdfghjklmnpqrstvwxz]w$|[^aeiouy]x$|[bcdfghkpqvx]z$|\
-[aeiou]{4,}|a{3}|b{3,}|d{3,}|e{3}|i{3}|o{3}|p{3,}|s{3,}|t{3,}|u{3}";
-
-fn factorial(n: usize) -> usize {
-    match n {
-      0 => { 1 }
-      _ => { n * factorial(n - 1) }
-    }
-}
+[aeiou]{4,}|a{3}|b{3,}|d{3,}|e{3}|i{3}|o{3}|p{3,}|s{3,}|t{3,}|u{3}|uu[aeio]|aeio[uu]";
 
 #[derive(Debug)]
 struct Config {
@@ -40,18 +33,18 @@ struct Config {
 
 impl Config {
     pub fn new(args: &[String]) -> Result<Config, &'static str> {
-        eprintln!("There are {} arguments.", args.len());
+        // eprintln!("There are {} arguments.", args.len());
         if args.len() < 3 {
             return Err("Need arguments *letters* and patterns");
         }
         let pattern_string = args[PATTERN_INDEX].clone().trim().to_ascii_lowercase();
-        eprintln!("The pattern string is '{}'", pattern_string);
+        // eprintln!("The pattern string is '{}'", pattern_string);
         if !args[PATTERN_INDEX].is_ascii() || pattern_string.len() < MIN_LETTERS || pattern_string.len() > MAX_LETTERS {
             return Err("The supplied pattern must be between 3 and 7 ASCII letters (or period) long.")
         }
 
         let pool_string = args[LETTER_INDEX].clone().trim().to_ascii_lowercase();
-        eprintln!("The pool string is '{}'", pool_string);
+        // eprintln!("The pool string is '{}'", pool_string);
         if !args[LETTER_INDEX].is_ascii() || pool_string.len() < MIN_LETTERS || pool_string.len() > MAX_LETTERS {
             return Err("The supplied possible letters must be between 3 and 7 ASCII letters long.")
         }
@@ -70,14 +63,14 @@ impl Config {
         }
         pool.sort();
         let pool = pool.to_vec();
-        eprintln!("There are {} arguments.", args.len());
+        // eprintln!("There are {} arguments.", args.len());
         let mut exclusions : Option<Regex> = None;
         if args.len() >= 4 {
             if args[EXCLUSION_INDEX].len() > 0 {
                 let rx_result = Regex::new(&args[EXCLUSION_INDEX]);
                 match rx_result {
                     Ok(rx) => {
-                        eprintln!("Using supplied exclusions: '{}'", args[EXCLUSION_INDEX]);
+                        // eprintln!("Using supplied exclusions: '{}'", args[EXCLUSION_INDEX]);
                         exclusions = Some(rx);
                     },
                     Err(err) => {
@@ -85,13 +78,13 @@ impl Config {
                     },
                 }
             } else {
-                eprintln!("Using a blank argument to skip default exclusions; no exclusions used.");
+                // eprintln!("Using a blank argument to skip default exclusions; no exclusions used.");
             }
         } else {
             let rx_result = Regex::new(DEFAULT_EXCLUSIONS);
             match rx_result {
                 Ok(rx) => {
-                    eprintln!("Using supplied exclusions: '{}'", DEFAULT_EXCLUSIONS);
+                    // eprintln!("Using supplied exclusions: '{}'", DEFAULT_EXCLUSIONS);
                     exclusions = Some(rx);
                 },
                 Err(err) => {
@@ -149,12 +142,8 @@ fn fill_letter(level: usize, template: &Vec<u8>, pool: &Vec<u8>, letters: &mut V
 fn main() {
     let args: Vec<String> = env::args().collect();
     let config = Config::new(&args).expect("Insufficient arguments");
-    unsafe {
-        eprintln!("Pattern   : {}", String::from_utf8_unchecked(config.pattern.to_vec()));
-        eprintln!("Pool      : {}", String::from_utf8_unchecked(config.pool.to_vec()));
-        if args.len() > 3 {
-            eprintln!("Exclusions: {}", args[EXCLUSION_INDEX]);
-        }
+    if args.len() > 3 {
+        eprintln!("Exclusions: {}", args[EXCLUSION_INDEX]);
     }
 
     let mut non_dot_count = 0;
@@ -164,10 +153,6 @@ fn main() {
         }
     }
 
-    eprintln!("The number of pre-specified letters is: {}; {}! = {}", non_dot_count, non_dot_count, factorial(non_dot_count));
-    // println!("The maximum number of possible words in a    game is: {}", factorial(MAX_LETTERS));
-    // println!("The maximum number of possible words in this game is: {}", factorial(config.pattern.len()));
-    // println!("The maximum number of legal    words in this game is: {}", factorial(config.pattern.len()) / factorial(non_dot_count));
     let mut words : HashSet<String> = HashSet::new();
     let mut bookmarks: Vec<usize> = Vec::with_capacity(MAX_LETTERS);
     let mut letters: Vec<u8> = Vec::with_capacity(MAX_LETTERS);
